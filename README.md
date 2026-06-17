@@ -4,6 +4,8 @@
 
 BookSphere is a full-stack online bookstore where every feature is directly powered by a specific data structure. Built as a DSA showcase project — not just a bookstore, but a live demonstration of *why* each data structure is the optimal fit for each real-world problem.
 
+🌐 **Live:** [booksphere-dun.vercel.app](https://booksphere-dun.vercel.app)
+
 ---
 
 ## 💡 Core Idea
@@ -18,13 +20,15 @@ Real Problem  →  Bookstore Feature  →  Best-fit Data Structure  →  Impleme
 
 | Field | Detail |
 |-------|--------|
-| Language | Java 17+ / JavaScript (React) |
-| Build Tool | Maven |
 | Frontend | React 18 + Vite |
-| Auth & Database | Supabase (PostgreSQL + Auth) |
 | Styling | Pure CSS — no UI library |
 | State Management | React useReducer + Context |
-| DSA Engine | Pure `java.util` (mirrored in JS) |
+| Backend | Supabase (PostgreSQL + Auth + REST API) |
+| Authentication | Supabase Auth — Email/Password + Google OAuth |
+| Database | PostgreSQL via Supabase (6 tables) |
+| Security | Row Level Security (RLS) |
+| DSA Engine | JavaScript (mirrored from Java DSA concepts) |
+| Deployment | Vercel (frontend) + Supabase Cloud (backend) |
 
 ---
 
@@ -55,56 +59,55 @@ VITE_SUPABASE_URL=https://your-project-id.supabase.co
 VITE_SUPABASE_ANON_KEY=your_publishable_key_here
 ```
 
+### Database Setup
+
+Run `supabase_setup.sql` in your Supabase project → SQL Editor.
+This creates all 6 tables with RLS policies and seeds the book catalog.
+
 ---
 
-## 🔐 Authentication — Supabase
+## 🔐 Authentication
 
 BookSphere uses **Supabase Auth** for secure user management:
 
 - Email + password signup / login
+- Google OAuth login
 - Session persistence across page refreshes via `onAuthStateChange`
+- JWT tokens stored in localStorage — auto-refreshed
 - Premium member flag stored in `user_metadata`
-- Passwords never stored in frontend state — fully handled by Supabase
+- Passwords never stored in frontend — bcrypt handled by Supabase
+- Forgot password → real reset email via Supabase
 
 | Action | Method |
 |--------|--------|
 | Register | `supabase.auth.signUp()` |
 | Login | `supabase.auth.signInWithPassword()` |
+| Google Login | `supabase.auth.signInWithOAuth()` |
 | Logout | `supabase.auth.signOut()` |
 | Session restore | `supabase.auth.getSession()` |
-
-### Login Page Features
-- Field-level inline validation with real-time error clearing
-- Password strength meter (Weak → Fair → Good → Strong)
-- Show / hide password toggle
-- Forgot password flow
-- Remember me checkbox
-- Quick demo account fill buttons
-- Loading spinner on submit
-- Auto-focus on mode switch
 
 ---
 
 ## 🗺️ User Journey
 
 ```
-Login / Register  (Supabase Auth)
+Login / Register  (Supabase Auth — Email or Google)
       ↓
 Browse Book Catalog + Genres
       ↓
 Search Books by Tag / Genre / Author
       ↓
-View Recently Seen Books
+View Recently Seen Books  (persisted in DB)
       ↓
-Add to Wishlist
+Add to Wishlist  (persisted in DB)
       ↓
-Add to Cart  ←→  Remove + Undo
+Add to Cart  ←→  Remove + Undo  (persisted in DB)
       ↓
-Apply Discount Coupons
+Apply Discount Coupons  (shows which coupons selected)
       ↓
 Filter by Price
       ↓
-Place Order  →  Standard / Premium Queue
+Place Order  →  Standard / Premium Queue  (persisted in DB)
       ↓
 Track Delivery Route
       ↓
@@ -115,8 +118,8 @@ Get Book Recommendations
 
 ## 🧩 Feature → Data Structure Map
 
-| # | Feature | Data Structure | API |
-|---|---------|----------------|-----|
+| # | Feature | Data Structure | DSA Concept |
+|---|---------|----------------|-------------|
 | 1 | Book Catalog | ArrayList | `ArrayList<Book>` |
 | 2 | Shopping Cart | ArrayList | `ArrayList<CartItem>` |
 | 3 | Undo Remove | Stack | `ArrayDeque<CartItem>` |
@@ -126,43 +129,23 @@ Get Book Recommendations
 | 7 | Wishlist | HashSet | `HashSet<Book>` |
 | 8 | Price Sorting | TreeMap | `TreeMap<Double, List<Book>>` |
 | 9 | Genre Categories | Tree | Custom N-ary Tree |
-| 10 | Delivery Routes | Graph | `Map<String, List<Edge>>` |
+| 10 | Delivery Routes | Graph + Dijkstra | `Map<String, List<Edge>>` |
 | 11 | Recently Viewed | LinkedList | `LinkedList<Book>` |
 | 12 | Discount Engine | Dynamic Programming | `int[n+1][W+1]` |
 | 13 | Recommendations | Graph + BFS | `Map<Book, Set<Book>>` |
 
 ---
 
-## 🔍 Feature Highlights
+## 🗄️ Database Tables (Supabase)
 
-### 🔐 Auth — Supabase
-Real user accounts with email/password. Sessions persist across refreshes. Premium flag stored in JWT metadata and read back on every login.
-
-### 🔎 Book Search — HashMap
-Every book is indexed by its tags (genre, author, topic) at insert time. Searching by keyword returns results in **O(1)** average.
-
-### ↩️ Undo Remove — Stack (ArrayDeque)
-Every cart removal is pushed onto a stack. Undo pops and restores the last removed book in **O(1)** — pure LIFO.
-
-### 🏆 Premium Orders — PriorityQueue
-Premium members get priority `1`, regular users `10`. The min-heap always surfaces the most important order next — no re-sorting needed.
-
-### 🗂️ Genre Browsing — Custom N-ary Tree
-```
-Technology → Programming → Algorithms → Systems
-Fiction    → Classic → Sci-Fi → Dystopia
-Non-Fiction → History → Psychology
-Self-Help  → Productivity → Habits
-```
-
-### 🚚 Delivery Routes — Graph + Dijkstra
-Cities are graph nodes, roads are weighted edges. Dijkstra finds the shortest delivery path in **O((V+E) log V)**.
-
-### 💸 Discount Engine — 0/1 Knapsack DP
-The DP table evaluates every combination of coupons and guarantees the maximum possible discount for the cart total.
-
-### 🤝 Recommendations — Graph + BFS
-BFS from any book returns all related books within N hops across the co-purchase graph.
+| Table | Purpose | Access |
+|-------|---------|--------|
+| `books` | Book catalog — 12 books seeded | Public read |
+| `coupons` | Discount coupons for DP engine | Public read |
+| `orders` | Order history per user | Private |
+| `wishlists` | Saved books per user | Private |
+| `carts` | Persistent cart per user | Private |
+| `recently_viewed` | View history per user | Private |
 
 ---
 
@@ -187,44 +170,48 @@ BFS from any book returns all related books within N hops across the co-purchase
 
 ```
 ShopSphere/
-├── .gitignore
-├── README.md
-├── pom.xml
+├── README.md               ← this file
+├── BACKEND.md              ← backend documentation
+├── SUPABASE.md             ← Supabase setup guide
+├── BOOKSPHERE_DOCS.md      ← full DSA technical docs
+├── supabase_setup.sql      ← run this in Supabase SQL Editor
 ├── frontend/
-│   ├── .env.example          ← copy to .env and fill keys
+│   ├── .env.example
 │   ├── package.json
 │   ├── vite.config.js
 │   └── src/
 │       ├── lib/
-│       │   └── supabase.js   ← Supabase client singleton
+│       │   └── supabase.js         ← Supabase client
 │       ├── store/
-│       │   └── useStore.jsx  ← global state + DSA logic
+│       │   └── useStore.jsx        ← global state + all DSA logic
 │       ├── components/
 │       │   ├── Navbar.jsx
 │       │   ├── ProductCard.jsx
 │       │   └── CategoryTree.jsx
 │       ├── pages/
-│       │   ├── LoginPage.jsx
-│       │   ├── CatalogPage.jsx
-│       │   ├── CartPage.jsx
-│       │   ├── OrdersPage.jsx
-│       │   ├── DeliveryPage.jsx
-│       │   ├── RecommendationsPage.jsx
+│       │   ├── LoginPage.jsx       ← Email + Google auth
+│       │   ├── CatalogPage.jsx     ← HashMap search + Tree browse
+│       │   ├── CartPage.jsx        ← ArrayList + Stack + DP
+│       │   ├── OrdersPage.jsx      ← Queue + PriorityQueue
+│       │   ├── DeliveryPage.jsx    ← Graph + Dijkstra
+│       │   ├── RecommendationsPage.jsx ← Graph + BFS
 │       │   └── UXPage.jsx
 │       ├── data/
-│       │   └── mockData.js
+│       │   └── mockData.js         ← delivery graph + rec graph + category tree
 │       ├── App.jsx
 │       └── index.css
-└── BOOKSPHERE_DOCS.md
 ```
 
 ---
 
 ## 📄 Documentation
 
-Full technical documentation including per-package breakdown, method-level descriptions, data structure decision rationale, and end-to-end data flow trace.
-
-→ See [`BOOKSPHERE_DOCS.md`](./BOOKSPHERE_DOCS.md)
+| File | Contents |
+|------|---------|
+| [`BACKEND.md`](./BACKEND.md) | Full backend architecture, Supabase services, JWT flow, OAuth |
+| [`SUPABASE.md`](./SUPABASE.md) | Supabase setup guide, table schemas, RLS policies |
+| [`BOOKSPHERE_DOCS.md`](./BOOKSPHERE_DOCS.md) | DSA technical docs, algorithm rationale, data flow |
+| [`supabase_setup.sql`](./supabase_setup.sql) | Run in Supabase SQL Editor to set up all tables |
 
 ---
 
