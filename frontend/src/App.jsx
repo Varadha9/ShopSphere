@@ -4,6 +4,7 @@ import Navbar from "./components/Navbar";
 import LoginPage from "./pages/LoginPage";
 import CatalogPage from "./pages/CatalogPage";
 import CartPage from "./pages/CartPage";
+import WishlistPage from "./pages/WishlistPage";
 import OrdersPage from "./pages/OrdersPage";
 import DeliveryPage from "./pages/DeliveryPage";
 import RecommendationsPage from "./pages/RecommendationsPage";
@@ -29,6 +30,7 @@ function AppInner() {
       <div className="app-body">
         {page === "Catalog"         && <CatalogPage setPage={setPage} />}
         {page === "Cart"            && <CartPage setPage={setPage} />}
+        {page === "Wishlist"        && <WishlistPage setPage={setPage} />}
         {page === "Orders"          && <OrdersPage setPage={setPage} />}
         {page === "Delivery"        && <DeliveryPage />}
         {page === "Recommendations" && <RecommendationsPage />}

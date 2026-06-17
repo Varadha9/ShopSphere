@@ -4,6 +4,7 @@ import { supabase } from "../lib/supabase";
 const pages = [
   { name: "Catalog",         icon: "📚" },
   { name: "Cart",            icon: "🛒" },
+  { name: "Wishlist",        icon: "💖" },
   { name: "Orders",          icon: "📦" },
   { name: "Delivery",        icon: "🚚" },
   { name: "Recommendations", icon: "🤝" },
@@ -12,6 +13,7 @@ const pages = [
 export default function Navbar({ page, setPage }) {
   const { state } = useStore();
   const cartCount = state.cart.reduce((s, i) => s + i.qty, 0);
+  const wishlistCount = state.wishlist.size;
 
   return (
     <nav className="navbar">
@@ -29,6 +31,7 @@ export default function Navbar({ page, setPage }) {
             <span>{p.icon}</span>
             <span>{p.name}</span>
             {p.name === "Cart" && cartCount > 0 ? <b>{cartCount}</b> : null}
+            {p.name === "Wishlist" && wishlistCount > 0 ? <b>{wishlistCount}</b> : null}
           </button>
         ))}
       </div>
