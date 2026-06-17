@@ -33,6 +33,38 @@ export const BOOK_DESCRIPTIONS = {
   p12: "A deep dive into the infrastructure of modern data systems — databases, stream processing, and distributed systems. The definitive guide for engineers building data-intensive applications.",
 };
 
+// Book metadata: pages, publisher, ISBN, year, format, badges
+export const BOOK_META = {
+  p1:  { pages: 352, publisher: "Addison-Wesley",    isbn: "978-0-201-61622-4", year: 1999, formats: ["Paperback","eBook"],          badge: "Bestseller" },
+  p2:  { pages: 431, publisher: "Prentice Hall",     isbn: "978-0-13-235088-4", year: 2008, formats: ["Paperback","Hardcover","eBook"], badge: "Bestseller" },
+  p3:  { pages: 896, publisher: "Chilton Books",     isbn: "978-0-441-17271-9", year: 1965, formats: ["Paperback","Hardcover","eBook"], badge: "Award Winner" },
+  p4:  { pages: 328, publisher: "Secker & Warburg",  isbn: "978-0-452-28423-4", year: 1949, formats: ["Paperback","eBook"],          badge: "Classic" },
+  p5:  { pages: 443, publisher: "Harper",            isbn: "978-0-06-231609-7", year: 2011, formats: ["Paperback","Hardcover","eBook"], badge: "Bestseller" },
+  p6:  { pages: 320, publisher: "Avery",             isbn: "978-0-73-521188-8", year: 2018, formats: ["Paperback","Hardcover","eBook"], badge: "#1 Bestseller" },
+  p7:  { pages: 1312, publisher: "MIT Press",        isbn: "978-0-26-204630-5", year: 2009, formats: ["Hardcover","eBook"],          badge: "Textbook" },
+  p8:  { pages: 197, publisher: "HarperOne",         isbn: "978-0-06-112241-5", year: 1988, formats: ["Paperback","eBook"],          badge: "Classic" },
+  p9:  { pages: 499, publisher: "Farrar Straus",     isbn: "978-0-37-453355-7", year: 2011, formats: ["Paperback","Hardcover","eBook"], badge: "Nobel Prize" },
+  p10: { pages: 296, publisher: "Grand Central",     isbn: "978-1-45-552384-9", year: 2016, formats: ["Paperback","Hardcover","eBook"], badge: "Bestseller" },
+  p11: { pages: 180, publisher: "Scribner",          isbn: "978-0-74-327356-5", year: 1925, formats: ["Paperback","eBook"],          badge: "Classic" },
+  p12: { pages: 611, publisher: "O'Reilly Media",    isbn: "978-1-44-937332-0", year: 2017, formats: ["Paperback","eBook"],          badge: "Editor's Pick" },
+};
+
+// Star rating distribution (simulated review counts per star)
+export const RATING_DIST = {
+  p1:  [12, 18, 45, 89, 312],
+  p2:  [8,  14, 38, 76, 287],
+  p3:  [5,  9,  28, 94, 401],
+  p4:  [10, 15, 41, 88, 356],
+  p5:  [14, 22, 53, 112, 389],
+  p6:  [7,  11, 29, 81, 334],
+  p7:  [18, 27, 61, 98, 278],
+  p8:  [20, 31, 67, 102, 245],
+  p9:  [15, 23, 54, 93, 267],
+  p10: [9,  16, 42, 88, 312],
+  p11: [22, 38, 74, 118, 289],
+  p12: [6,  10, 24, 67, 298],
+};
+
 export const RECOMMENDATION_GRAPH = {
   p1:  ["p2", "p7", "p12"],
   p2:  ["p1", "p7", "p12"],

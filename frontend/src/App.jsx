@@ -2,6 +2,7 @@ import { useState } from "react";
 import { StoreProvider, useStore } from "./store/useStore";
 import Navbar from "./components/Navbar";
 import Toast from "./components/Toast";
+import Footer from "./components/Footer";
 import LoginPage from "./pages/LoginPage";
 import CatalogPage from "./pages/CatalogPage";
 import BookDetailPage from "./pages/BookDetailPage";
@@ -42,6 +43,7 @@ function AppInner() {
         {page === "Premium"         && <PremiumPage setPage={setPage} />}
         {page === "UX"              && <UXPage />}
       </div>
+      <Footer setPage={setPage} />
     </div>
   );
 }

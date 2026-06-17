@@ -140,6 +140,7 @@ const initial = {
   loading: true,
   toast: null,           // { message, type }
   selectedBook: null,    // book opened in detail view
+  sortBy: "default",    // default | price-asc | price-desc | rating
 };
 
 function reducer(state, action) {
@@ -280,6 +281,9 @@ function reducer(state, action) {
     case "DELIVER_ORDER": {
       return { ...state, orders: state.orders.map(o => o.orderId === action.payload ? { ...o, status: "DELIVERED" } : o) };
     }
+
+    case "SET_SORT":
+      return { ...state, sortBy: action.payload };
 
     case "SHOW_TOAST":
       return { ...state, toast: { message: action.payload.message, type: action.payload.type || "success" } };

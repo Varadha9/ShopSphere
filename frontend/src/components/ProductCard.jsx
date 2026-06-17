@@ -1,4 +1,5 @@
 import { useStore } from "../store/useStore";
+import { BOOK_META } from "../data/mockData";
 
 const BOOK_IMAGES = {
   p1:  "https://images.unsplash.com/photo-1461749280684-dccba630e2f6?w=400&q=80",
@@ -15,23 +16,35 @@ const BOOK_IMAGES = {
   p12: "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400&q=80",
 };
 
-export default function ProductCard({ product, onSelect, setPage }) {
+const BADGE_COLORS = {
+  "Bestseller":    { bg: "rgba(255,209,102,0.18)", border: "rgba(255,209,102,0.6)", color: "var(--amber)" },
+  "#1 Bestseller": { bg: "rgba(255,106,168,0.18)", border: "rgba(255,106,168,0.6)", color: "var(--pink)" },
+  "Award Winner":  { bg: "rgba(78,230,180,0.18)",  border: "rgba(78,230,180,0.6)",  color: "var(--mint)" },
+  "Nobel Prize":   { bg: "rgba(78,230,180,0.18)",  border: "rgba(78,230,180,0.6)",  color: "var(--mint)" },
+  "Classic":       { bg: "rgba(143,124,255,0.18)", border: "rgba(143,124,255,0.6)", color: "var(--violet)" },
+  "Editor's Pick": { bg: "rgba(57,183,255,0.18)",  border: "rgba(57,183,255,0.6)",  color: "var(--blue)" },
+  "Textbook":      { bg: "rgba(255,255,255,0.1)",  border: "rgba(255,255,255,0.3)", color: "var(--soft)" },
+};
+
+export default function ProductCard({ product, setPage, compact = false }) {
   const { state, dispatch } = useStore();
   const wishlisted = state.wishlist.has(product.id);
-  const ratingPct = Math.min(100, Math.round((product.rating / 5) * 100));
-  const img = BOOK_IMAGES[product.id];
+  const ratingPct  = Math.min(100, Math.round((product.rating / 5) * 100));
+  const img        = BOOK_IMAGES[product.id];
+  const meta       = BOOK_META[product.id];
+  const badge      = meta?.badge;
+  const badgeStyle = badge ? BADGE_COLORS[badge] : null;
 
   function handleView() {
-    dispatch({ type: "VIEW_PRODUCT", payload: product });
-    dispatch({ type: "SELECT_BOOK", payload: product });
-    onSelect?.(product);
+    dispatch({ type: "VIEW_PRODUCT",  payload: product });
+    dispatch({ type: "SELECT_BOOK",   payload: product });
     if (setPage) setPage("BookDetail");
   }
 
   function handleAddToCart(e) {
     e.stopPropagation();
-    dispatch({ type: "ADD_TO_CART", payload: { product } });
-    dispatch({ type: "SHOW_TOAST", payload: { message: `“${product.name}” added to cart`, type: "success" } });
+    dispatch({ type: "ADD_TO_CART",  payload: { product } });
+    dispatch({ type: "SHOW_TOAST",   payload: { message: `"${product.name}" added to cart`, type: "success" } });
   }
 
   function handleWishlist(e) {
@@ -40,10 +53,33 @@ export default function ProductCard({ product, onSelect, setPage }) {
     dispatch({
       type: "SHOW_TOAST",
       payload: {
-        message: wishlisted ? `Removed from wishlist` : `“${product.name}” saved to wishlist`,
+        message: wishlisted ? "Removed from wishlist" : `"${product.name}" saved`,
         type: wishlisted ? "info" : "success",
       },
     });
+  }
+
+  if (compact) {
+    return (
+      <div className="compact-card" onClick={handleView}>
+        <div className="compact-cover">
+          {img ? <img src={img} alt={product.name} /> : <span>📚</span>}
+          {badge && (
+            <span className="compact-badge" style={{ background: badgeStyle?.bg, color: badgeStyle?.color, border: `1px solid ${badgeStyle?.border}` }}>
+              {badge}
+            </span>
+          )}
+        </div>
+        <div className="compact-info">
+          <p className="compact-title">{product.name}</p>
+          <p className="compact-author">by {product.author}</p>
+          <div className="compact-bottom">
+            <span className="price">₹{product.price.toLocaleString()}</span>
+            <span className="compact-rating">★ {product.rating}</span>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -54,6 +90,11 @@ export default function ProductCard({ product, onSelect, setPage }) {
           : <span className="product-emoji">📚</span>
         }
         <span className="category-chip">{product.category}</span>
+        {badge && (
+          <span className="book-badge" style={{ background: badgeStyle?.bg, color: badgeStyle?.color, border: `1px solid ${badgeStyle?.border}` }}>
+            {badge}
+          </span>
+        )}
         <button
           className={`wishlist-btn ${wishlisted ? "wishlisted" : ""}`}
           onClick={handleWishlist}
@@ -72,7 +113,7 @@ export default function ProductCard({ product, onSelect, setPage }) {
       </div>
       <div className="price-row">
         <p className="price">₹{product.price.toLocaleString()}</p>
-        <span>{product.tags[0]}</span>
+        <span className="avail-chip">✓ In Stock</span>
       </div>
       <div className="card-actions-single" onClick={e => e.stopPropagation()}>
         <button className="btn-primary" onClick={handleAddToCart}>
