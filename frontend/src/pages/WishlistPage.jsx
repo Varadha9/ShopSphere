@@ -8,10 +8,17 @@ export default function WishlistPage({ setPage }) {
 
   function addToCart(book) {
     dispatch({ type: "ADD_TO_CART", payload: { product: book } });
+    dispatch({ type: "SHOW_TOAST", payload: { message: `“${book.name}” added to cart`, type: "success" } });
+  }
+
+  function addAllToCart() {
+    savedBooks.forEach(book => dispatch({ type: "ADD_TO_CART", payload: { product: book } }));
+    dispatch({ type: "SHOW_TOAST", payload: { message: `${savedBooks.length} books added to cart`, type: "success" } });
   }
 
   function removeFromWishlist(bookId) {
     dispatch({ type: "TOGGLE_WISHLIST", payload: bookId });
+    dispatch({ type: "SHOW_TOAST", payload: { message: "Removed from wishlist", type: "info" } });
   }
 
   return (
@@ -21,7 +28,14 @@ export default function WishlistPage({ setPage }) {
           <span className="eyebrow">Saved books</span>
           <h2>Wishlist</h2>
         </div>
-        <button className="btn-primary" onClick={() => setPage("Catalog")}>Browse Catalog</button>
+        <div style={{ display: "flex", gap: 10 }}>
+          {savedBooks.length > 1 && (
+            <button className="btn-primary" onClick={addAllToCart}>
+              🛒 Add All to Cart
+            </button>
+          )}
+          <button className="btn-sm" onClick={() => setPage("Catalog")}>Browse Catalog</button>
+        </div>
       </div>
 
       {savedBooks.length === 0 ? (
@@ -32,7 +46,15 @@ export default function WishlistPage({ setPage }) {
         <div className="profile-wishlist">
           {savedBooks.map(book => (
             <div key={book.id} className="profile-wishlist-item">
-              <div className="profile-wishlist-info">
+              <div
+                className="profile-wishlist-info"
+                style={{ cursor: "pointer" }}
+                onClick={() => {
+                  dispatch({ type: "SELECT_BOOK", payload: book });
+                  dispatch({ type: "VIEW_PRODUCT", payload: book });
+                  setPage("BookDetail");
+                }}
+              >
                 <span>📖</span>
                 <div>
                   <strong>{book.name}</strong>

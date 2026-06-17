@@ -1,8 +1,10 @@
 import { useState } from "react";
 import { StoreProvider, useStore } from "./store/useStore";
 import Navbar from "./components/Navbar";
+import Toast from "./components/Toast";
 import LoginPage from "./pages/LoginPage";
 import CatalogPage from "./pages/CatalogPage";
+import BookDetailPage from "./pages/BookDetailPage";
 import CartPage from "./pages/CartPage";
 import WishlistPage from "./pages/WishlistPage";
 import OrdersPage from "./pages/OrdersPage";
@@ -27,13 +29,15 @@ function AppInner() {
   return (
     <div className="app-shell">
       <Navbar page={page} setPage={setPage} />
+      <Toast />
       <div className="app-body">
         {page === "Catalog"         && <CatalogPage setPage={setPage} />}
+        {page === "BookDetail"       && <BookDetailPage setPage={setPage} />}
         {page === "Cart"            && <CartPage setPage={setPage} />}
         {page === "Wishlist"        && <WishlistPage setPage={setPage} />}
         {page === "Orders"          && <OrdersPage setPage={setPage} />}
         {page === "Delivery"        && <DeliveryPage />}
-        {page === "Recommendations" && <RecommendationsPage />}
+        {page === "Recommendations" && <RecommendationsPage setPage={setPage} />}
         {page === "Profile"         && <ProfilePage setPage={setPage} />}
         {page === "Premium"         && <PremiumPage setPage={setPage} />}
         {page === "UX"              && <UXPage />}

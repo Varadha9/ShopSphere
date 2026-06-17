@@ -14,7 +14,9 @@ export default function CartPage({ setPage }) {
 
   function placeOrder() {
     if (!state.cart.length) return;
-    dispatch({ type: "PLACE_ORDER" });
+    const discount = discountResult?.total || 0;
+    dispatch({ type: "PLACE_ORDER", payload: { discount } });
+    dispatch({ type: "SHOW_TOAST", payload: { message: `Order placed! ${discount > 0 ? `₹${discount} discount applied.` : ""}`, type: "success" } });
     setDiscountResult(null);
     setPage("Orders");
   }

@@ -2,8 +2,8 @@ import { useState } from "react";
 import { bfsRecommend, useStore } from "../store/useStore";
 import ProductCard from "../components/ProductCard";
 
-export default function RecommendationsPage() {
-  const { state } = useStore();
+export default function RecommendationsPage({ setPage }) {
+  const { state, dispatch } = useStore();
   const { catalog } = state;
   const [selected, setSelected] = useState(null);
   const [depth, setDepth] = useState(2);
@@ -40,7 +40,7 @@ export default function RecommendationsPage() {
 
       {recs.length === 0
         ? <p className="empty">No recommendations found at depth {depth}.</p>
-        : <div className="product-grid">{recs.map(p => <ProductCard key={p.id} product={p} />)}</div>
+        : <div className="product-grid">{recs.map(p => <ProductCard key={p.id} product={p} setPage={setPage} />)}</div>
       }
     </div>
   );

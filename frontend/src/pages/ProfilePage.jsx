@@ -138,7 +138,10 @@ export default function ProfilePage({ setPage }) {
               <h3>Recently Viewed</h3>
               <div className="profile-recent-list">
                 {recentProducts.map(p => (
-                  <div key={p.id} className="profile-recent-item" onClick={() => setPage("Catalog")}>
+                  <div key={p.id} className="profile-recent-item" onClick={() => {
+                    dispatch({ type: "SELECT_BOOK", payload: p });
+                    setPage("BookDetail");
+                  }}>
                     <span className="profile-recent-emoji">📖</span>
                     <div>
                       <strong>{p.name}</strong>

@@ -130,7 +130,17 @@ export default function CatalogPage({ setPage }) {
             {/* DSA: LinkedList<Book>  →  java.util.LinkedList
                  Sliding window: addFirst() + removeLast() when size > MAX_RECENT. O(1) */}
             <ul className="recent-list">
-              {state.recentProducts.map(p => <li key={p.id}>{p.name}</li>)}
+              {state.recentProducts.map(p => (
+                <li key={p.id}
+                  className="recent-list-item"
+                  onClick={() => {
+                    dispatch({ type: "SELECT_BOOK", payload: p });
+                    setPage("BookDetail");
+                  }}
+                >
+                  {p.name}
+                </li>
+              ))}
             </ul>
           </section>
         )}
@@ -153,7 +163,7 @@ export default function CatalogPage({ setPage }) {
 
         <div className="product-grid">
           {displayProducts.length
-            ? displayProducts.map(p => <ProductCard key={p.id} product={p} />)
+            ? displayProducts.map(p => <ProductCard key={p.id} product={p} setPage={setPage} />)
             : <p className="empty">No products found.</p>
           }
         </div>

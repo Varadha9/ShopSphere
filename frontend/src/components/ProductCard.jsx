@@ -15,7 +15,7 @@ const BOOK_IMAGES = {
   p12: "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400&q=80",
 };
 
-export default function ProductCard({ product, onSelect }) {
+export default function ProductCard({ product, onSelect, setPage }) {
   const { state, dispatch } = useStore();
   const wishlisted = state.wishlist.has(product.id);
   const ratingPct = Math.min(100, Math.round((product.rating / 5) * 100));
@@ -23,7 +23,27 @@ export default function ProductCard({ product, onSelect }) {
 
   function handleView() {
     dispatch({ type: "VIEW_PRODUCT", payload: product });
+    dispatch({ type: "SELECT_BOOK", payload: product });
     onSelect?.(product);
+    if (setPage) setPage("BookDetail");
+  }
+
+  function handleAddToCart(e) {
+    e.stopPropagation();
+    dispatch({ type: "ADD_TO_CART", payload: { product } });
+    dispatch({ type: "SHOW_TOAST", payload: { message: `“${product.name}” added to cart`, type: "success" } });
+  }
+
+  function handleWishlist(e) {
+    e.stopPropagation();
+    dispatch({ type: "TOGGLE_WISHLIST", payload: product.id });
+    dispatch({
+      type: "SHOW_TOAST",
+      payload: {
+        message: wishlisted ? `Removed from wishlist` : `“${product.name}” saved to wishlist`,
+        type: wishlisted ? "info" : "success",
+      },
+    });
   }
 
   return (
@@ -36,7 +56,7 @@ export default function ProductCard({ product, onSelect }) {
         <span className="category-chip">{product.category}</span>
         <button
           className={`wishlist-btn ${wishlisted ? "wishlisted" : ""}`}
-          onClick={e => { e.stopPropagation(); dispatch({ type: "TOGGLE_WISHLIST", payload: product.id }); }}
+          onClick={handleWishlist}
           aria-label={wishlisted ? "Remove from wishlist" : "Add to wishlist"}
         >
           {wishlisted ? "♥" : "♡"}
@@ -54,8 +74,8 @@ export default function ProductCard({ product, onSelect }) {
         <p className="price">₹{product.price.toLocaleString()}</p>
         <span>{product.tags[0]}</span>
       </div>
-      <div className="card-actions" onClick={e => e.stopPropagation()}>
-        <button className="btn-primary" onClick={() => dispatch({ type: "ADD_TO_CART", payload: { product } })}>
+      <div className="card-actions-single" onClick={e => e.stopPropagation()}>
+        <button className="btn-primary" onClick={handleAddToCart}>
           🛒 Add to Cart
         </button>
       </div>

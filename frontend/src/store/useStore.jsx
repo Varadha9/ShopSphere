@@ -138,6 +138,8 @@ const initial = {
   priceFilter: { min: 0, max: 99999 },
   coupons: [],
   loading: true,
+  toast: null,           // { message, type }
+  selectedBook: null,    // book opened in detail view
 };
 
 function reducer(state, action) {
@@ -186,9 +188,18 @@ function reducer(state, action) {
 
     case "SEARCH": {
       // DSA: HashMap<String, List<Book>>  →  java.util.HashMap
-      // O(1) average lookup by tag key.
+      // Primary: O(1) exact tag lookup. Fallback: scan name/author for partial match.
       const kw = action.payload.toLowerCase();
-      const results = state.searchIndex[kw] || [];
+      const exact = state.searchIndex[kw] || [];
+      const seen = new Set(exact.map(p => p.id));
+      const partial = exact.length ? [] : state.catalog.filter(p =>
+        !seen.has(p.id) && (
+          p.name.toLowerCase().includes(kw) ||
+          p.author.toLowerCase().includes(kw) ||
+          p.tags.some(t => t.toLowerCase().includes(kw))
+        )
+      );
+      const results = [...exact, ...partial];
       return { ...state, searchResults: { keyword: kw, results } };
     }
 
@@ -201,9 +212,15 @@ function reducer(state, action) {
     case "ADD_TO_CART": {
       const { product, qty = 1 } = action.payload;
       const existing = state.cart.find(i => i.product.id === product.id);
-      const cart = existing
-        ? state.cart.map(i => i.product.id === product.id ? { ...i, qty: i.qty + qty } : i)
-        : [...state.cart, { product, qty }];
+      let cart;
+      if (existing) {
+        const newQty = existing.qty + qty;
+        cart = newQty <= 0
+          ? state.cart.filter(i => i.product.id !== product.id)
+          : state.cart.map(i => i.product.id === product.id ? { ...i, qty: newQty } : i);
+      } else {
+        cart = qty > 0 ? [...state.cart, { product, qty }] : state.cart;
+      }
       return { ...state, cart };
     }
 
@@ -234,7 +251,9 @@ function reducer(state, action) {
     }
 
     case "PLACE_ORDER": {
-      const total = state.cart.reduce((s, i) => s + i.product.price * i.qty, 0);
+      const rawTotal = state.cart.reduce((s, i) => s + i.product.price * i.qty, 0);
+      const discount = action.payload?.discount || 0;
+      const total = Math.max(0, rawTotal - discount);
       const priority = state.user?.isPremium ? 1 : 10;
       const order = {
         orderId: `ORD-${Date.now()}`,
@@ -261,6 +280,15 @@ function reducer(state, action) {
     case "DELIVER_ORDER": {
       return { ...state, orders: state.orders.map(o => o.orderId === action.payload ? { ...o, status: "DELIVERED" } : o) };
     }
+
+    case "SHOW_TOAST":
+      return { ...state, toast: { message: action.payload.message, type: action.payload.type || "success" } };
+
+    case "HIDE_TOAST":
+      return { ...state, toast: null };
+
+    case "SELECT_BOOK":
+      return { ...state, selectedBook: action.payload };
 
     default:
       return state;

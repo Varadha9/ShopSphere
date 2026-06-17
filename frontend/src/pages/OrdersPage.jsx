@@ -12,10 +12,15 @@ export default function OrdersPage({ setPage }) {
 
       <div className="queue-info">
         <p>Premium orders (⭐ priority=1) are always processed before regular orders (priority=10).</p>
-        <button className="btn-primary" disabled={!state.orders.some(o => o.status === "PENDING")}
-          onClick={() => dispatch({ type: "PROCESS_ORDER" })}>
-          ▶ Process Next Order
-        </button>
+        <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+          <button className="btn-primary" disabled={!state.orders.some(o => o.status === "PENDING")}
+            onClick={() => dispatch({ type: "PROCESS_ORDER" })}>
+            ▶ Process Next Order
+          </button>
+          <button className="btn-sm" onClick={() => setPage("Delivery")}>
+            🚚 Track Delivery Route
+          </button>
+        </div>
       </div>
 
       {state.orders.length === 0 ? (
@@ -35,6 +40,18 @@ export default function OrdersPage({ setPage }) {
                   <span key={product.id} className="order-item-chip">{product.name} ×{qty}</span>
                 ))}
               </div>
+              {order.status === "PROCESSING" && (
+                <button
+                  className="btn-primary btn-sm"
+                  style={{ justifySelf: "start" }}
+                  onClick={() => {
+                    dispatch({ type: "DELIVER_ORDER", payload: order.orderId });
+                    dispatch({ type: "SHOW_TOAST", payload: { message: `Order ${order.orderId} delivered!`, type: "success" } });
+                  }}
+                >
+                  ✅ Mark as Delivered
+                </button>
+              )}
             </div>
           ))}
         </div>
