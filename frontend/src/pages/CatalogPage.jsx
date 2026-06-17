@@ -26,6 +26,14 @@ export default function CatalogPage({ setPage }) {
   const displayProducts = state.searchResults ? state.searchResults.results : products;
   const featured = state.catalog[0];
 
+  if (!state.catalog.length) {
+    return (
+      <div className="page">
+        <p className="empty">No books loaded yet. Check your Supabase environment variables and run the SQL setup.</p>
+      </div>
+    );
+  }
+
   function handleSearch(e) {
     e.preventDefault();
     if (searchKw.trim()) dispatch({ type: "SEARCH", payload: searchKw.trim() });

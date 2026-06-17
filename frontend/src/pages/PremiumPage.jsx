@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useStore } from "../store/useStore";
 import { supabase } from "../lib/supabase";
 
@@ -55,7 +56,7 @@ export default function PremiumPage({ setPage }) {
   async function upgrade() {
     setUpgrading(true);
     setError("");
-    const { data, error } = await supabase.auth.updateUser({
+    const { error } = await supabase.auth.updateUser({
       data: { name: state.user?.name, isPremium: true },
     });
     if (error) {
@@ -71,7 +72,7 @@ export default function PremiumPage({ setPage }) {
       <div className="premium-page">
         <div className="premium-hero">
           <div className="premium-hero-icon">⭐</div>
-          <h1>You're a Premium Member!</h1>
+          <h1>You are a Premium Member!</h1>
           <p>You have priority order processing. Your orders always come first.</p>
           <button className="btn-primary" onClick={() => setPage("Profile")}>View Profile →</button>
         </div>
@@ -158,7 +159,7 @@ export default function PremiumPage({ setPage }) {
 
       <p className="premium-note">
         * This is a DSA showcase project. Premium upgrade is simulated — no real payment required.
-        Clicking "Upgrade" sets your account to Premium instantly.
+        Clicking Upgrade sets your account to Premium instantly.
       </p>
     </div>
   );

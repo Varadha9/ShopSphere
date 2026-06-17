@@ -284,6 +284,7 @@ async function loadUserData(userId, catalog, dispatch) {
 
 export function StoreProvider({ children }) {
   const [state, dispatch] = useReducer(reducer, initial);
+  const userId = state.user?.userId;
 
   // Load books + coupons from Supabase on mount
   useEffect(() => {
@@ -324,17 +325,17 @@ export function StoreProvider({ children }) {
 
   // Load user data once both user and catalog are ready
   useEffect(() => {
-    if (!state.user?.userId || !state.catalog.length) return;
-    loadUserData(state.user.userId, state.catalog, dispatch);
-  }, [state.user?.userId, state.catalog.length]);
+    if (!userId || !state.catalog.length) return;
+    loadUserData(userId, state.catalog, dispatch);
+  }, [userId, state.catalog]);
 
   // Fix 1: Persist orders + sync status updates
   useEffect(() => {
-    if (!state.user?.userId || !state.orders.length) return;
+    if (!userId || !state.orders.length) return;
     state.orders.forEach(order => {
       supabase.from("orders").upsert({
         order_id:   order.orderId,
-        user_id:    state.user.userId,
+        user_id:    userId,
         items:      order.items,
         total:      order.total,
         priority:   order.priority,
@@ -342,34 +343,34 @@ export function StoreProvider({ children }) {
         is_premium: order.isPremium,
       }, { onConflict: "order_id" });
     });
-  }, [state.orders]);
+  }, [state.orders, userId]);
 
   // Fix 2: Per-item wishlist sync
   useEffect(() => {
-    if (!state.user?.userId) return;
+    if (!userId) return;
     const bookIds = [...state.wishlist];
-    supabase.from("wishlists").delete().eq("user_id", state.user.userId).then(() => {
+    supabase.from("wishlists").delete().eq("user_id", userId).then(() => {
       if (!bookIds.length) return;
-      supabase.from("wishlists").upsert(bookIds.map(book_id => ({ user_id: state.user.userId, book_id })), { onConflict: "user_id,book_id" });
+      supabase.from("wishlists").upsert(bookIds.map(book_id => ({ user_id: userId, book_id })), { onConflict: "user_id,book_id" });
     });
-  }, [state.wishlist]);
+  }, [state.wishlist, userId]);
 
   // Fix 3: Persist cart to Supabase
   useEffect(() => {
-    if (!state.user?.userId) return;
-    supabase.from("carts").delete().eq("user_id", state.user.userId).then(() => {
+    if (!userId) return;
+    supabase.from("carts").delete().eq("user_id", userId).then(() => {
       if (!state.cart.length) return;
-      supabase.from("carts").insert(state.cart.map(({ product, qty }) => ({ user_id: state.user.userId, book_id: product.id, qty })));
+      supabase.from("carts").insert(state.cart.map(({ product, qty }) => ({ user_id: userId, book_id: product.id, qty })));
     });
-  }, [state.cart]);
+  }, [state.cart, userId]);
 
   // Fix 4: Persist recently viewed
   useEffect(() => {
-    if (!state.user?.userId || !state.recentProducts.length) return;
+    if (!userId || !state.recentProducts.length) return;
     state.recentProducts.forEach(product => {
-      supabase.from("recently_viewed").upsert({ user_id: state.user.userId, book_id: product.id, viewed_at: new Date().toISOString() }, { onConflict: "user_id,book_id" });
+      supabase.from("recently_viewed").upsert({ user_id: userId, book_id: product.id, viewed_at: new Date().toISOString() }, { onConflict: "user_id,book_id" });
     });
-  }, [state.recentProducts]);
+  }, [state.recentProducts, userId]);
 
   return <StoreContext.Provider value={{ state, dispatch }}>{children}</StoreContext.Provider>;
 }
