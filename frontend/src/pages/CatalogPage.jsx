@@ -100,13 +100,20 @@ export default function CatalogPage({ setPage }) {
           </button>
         </section>
 
-        {state.wishlist.size > 0 && (
-          <section>
-            <h4>💖 Wishlist</h4>
-            {/* DSA: HashSet<String>  →  java.util.HashSet
-                 Stores unique book IDs. Add/remove/contains all O(1) average */}
+        <section>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "0.5rem" }}>
+            <h4 style={{ margin: 0 }}>💖 Wishlist {state.wishlist.size > 0 && <span style={{ background: "var(--mint)", color: "#000", borderRadius: "999px", fontSize: "0.7rem", fontWeight: 800, padding: "1px 7px", marginLeft: 6 }}>{state.wishlist.size}</span>}</h4>
+            {state.wishlist.size > 0 && (
+              <button className="btn-xs" onClick={() => setPage("Wishlist")}>View All</button>
+            )}
+          </div>
+          {/* DSA: HashSet<String>  →  java.util.HashSet
+               Stores unique book IDs. Add/remove/contains all O(1) average */}
+          {state.wishlist.size === 0 ? (
+            <p style={{ fontSize: "0.8rem", color: "var(--muted)" }}>Tap ♡ on any book to save it here.</p>
+          ) : (
             <ul className="wishlist-list">
-              {[...state.wishlist].map(id => {
+              {[...state.wishlist].slice(0, 5).map(id => {
                 const p = state.catalog.find(x => x.id === id);
                 return p ? <li key={id}>
                   {p.name}
@@ -114,8 +121,8 @@ export default function CatalogPage({ setPage }) {
                 </li> : null;
               })}
             </ul>
-          </section>
-        )}
+          )}
+        </section>
 
         {state.recentProducts.length > 0 && (
           <section>
