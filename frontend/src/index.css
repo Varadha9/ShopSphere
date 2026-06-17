@@ -818,6 +818,41 @@ select { width: auto; min-height: 42px; padding: 0 38px 0 12px; color: white; }
 }
 @keyframes spin { to { transform: rotate(360deg); } }
 
+.auth-divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 4px 0;
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+.auth-divider::before, .auth-divider::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--line);
+}
+.btn-google {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-height: 46px;
+  padding: 0 18px;
+  border: 1px solid var(--line);
+  border-radius: 15px;
+  color: white;
+  background: rgba(255,255,255,0.08);
+  font-weight: 700;
+  transition: 180ms ease;
+}
+.btn-google:hover {
+  background: rgba(255,255,255,0.14);
+  border-color: var(--line-strong);
+  transform: translateY(-1px);
+}
+
 @keyframes rotateGlow { to { transform: rotate(360deg); } }
 @keyframes floatBook {
   0%, 100% { transform: translate(-50%, -50%) rotate(-7deg); }

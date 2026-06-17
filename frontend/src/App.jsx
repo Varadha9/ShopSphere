@@ -13,6 +13,12 @@ function AppInner() {
   const { state } = useStore();
   const [page, setPage] = useState("Catalog");
 
+  if (state.loading) return (
+    <div style={{ minHeight: "100vh", display: "grid", placeItems: "center" }}>
+      <span className="auth-spinner" style={{ width: 36, height: 36, borderWidth: 3 }} />
+    </div>
+  );
+
   if (!state.user) return <LoginPage />;
 
   return (

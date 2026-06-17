@@ -1,12 +1,17 @@
 import { useState } from "react";
-import { bfsRecommend } from "../store/useStore";
-import { PRODUCTS } from "../data/mockData";
+import { bfsRecommend, useStore } from "../store/useStore";
 import ProductCard from "../components/ProductCard";
 
 export default function RecommendationsPage() {
-  const [selected, setSelected] = useState(PRODUCTS[0]);
+  const { state } = useStore();
+  const { catalog } = state;
+  const [selected, setSelected] = useState(null);
   const [depth, setDepth] = useState(2);
-  const recs = bfsRecommend(selected.id, depth);
+
+  const book = selected ?? catalog[0];
+  const recs = book ? bfsRecommend(book.id, catalog, depth) : [];
+
+  if (!catalog.length) return <div className="page"><p>Loading...</p></div>;
 
   return (
     <div className="page">
@@ -17,8 +22,8 @@ export default function RecommendationsPage() {
       <div className="rec-controls">
         <label>
           Base product:
-          <select value={selected.id} onChange={e => setSelected(PRODUCTS.find(p => p.id === e.target.value))}>
-            {PRODUCTS.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+          <select value={book?.id ?? ""} onChange={e => setSelected(catalog.find(p => p.id === e.target.value))}>
+            {catalog.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
           </select>
         </label>
         <label>
@@ -30,7 +35,7 @@ export default function RecommendationsPage() {
       </div>
 
       <div className="rec-seed">
-        <p>Readers who bought <strong>{selected.name}</strong> also bought:</p>
+        <p>Readers who bought <strong>{book?.name}</strong> also bought:</p>
       </div>
 
       {recs.length === 0

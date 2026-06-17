@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { useStore, knapsackDiscount } from "../store/useStore";
-import { COUPONS } from "../data/mockData";
 
 export default function CartPage({ setPage }) {
   const { state, dispatch } = useStore();
@@ -9,8 +8,8 @@ export default function CartPage({ setPage }) {
   const total = state.cart.reduce((s, i) => s + i.product.price * i.qty, 0);
 
   function applyDiscount() {
-    const best = knapsackDiscount(COUPONS, total);
-    setDiscountResult(best);
+    const result = knapsackDiscount(state.coupons, total);
+    setDiscountResult(result);
   }
 
   function placeOrder() {
@@ -64,15 +63,20 @@ export default function CartPage({ setPage }) {
               {/* DSA: 0/1 Knapsack DP  →  int[n+1][W+1] table — best coupon combo guaranteed in O(n×W) */}
               <button onClick={applyDiscount}>💸 Apply Best Discount</button>
               {discountResult !== null && (
-                <p className="discount-result">
-                  Best discount: <strong>₹{discountResult}</strong> off on ₹{total.toLocaleString()} cart
-                </p>
+                <div className="discount-result">
+                  <p>Best discount: <strong>₹{discountResult.total}</strong> off</p>
+                  {discountResult.selected.length > 0 && (
+                    <p>Coupons applied: {discountResult.selected.map(c => <span key={c.id} className="coupon-chip">{c.label}</span>)}
+                    </p>
+                  )}
+                  {discountResult.total === 0 && <p className="empty">No coupons applicable for this cart total.</p>}
+                </div>
               )}
             </div>
 
             <div className="total-section">
               <p>Subtotal: <strong>₹{total.toLocaleString()}</strong></p>
-              {discountResult > 0 && <p>After discount: <strong>₹{(total - discountResult).toLocaleString()}</strong></p>}
+              {discountResult?.total > 0 && <p>After discount: <strong>₹{(total - discountResult.total).toLocaleString()}</strong></p>}
               <button className="btn-primary" onClick={placeOrder}>
                 Place Order {state.user?.isPremium ? "(⭐ Premium Priority)" : "(Standard)"}
               </button>
@@ -84,7 +88,7 @@ export default function CartPage({ setPage }) {
       <div className="coupons-info">
         <h4>Available Coupons:</h4>
         <div className="coupon-list">
-          {COUPONS.map(c => (
+          {state.coupons.map(c => (
             <span key={c.id} className="coupon-chip">
               {c.label}: ₹{c.discount} off on ₹{c.minSpend}+
             </span>

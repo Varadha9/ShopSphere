@@ -2,19 +2,6 @@ import { useState, useEffect, useRef } from "react";
 import { useStore } from "../store/useStore";
 import { supabase } from "../lib/supabase";
 
-const DSA_FEATURES = [
-  { icon: "🔎", label: "O(1) Search", sub: "HashMap indexed by tag" },
-  { icon: "↩️", label: "Undo Remove", sub: "Stack — LIFO in O(1)" },
-  { icon: "🏆", label: "Priority Queue", sub: "Premium orders first" },
-  { icon: "🚚", label: "Dijkstra Routes", sub: "Shortest delivery path" },
-  { icon: "💸", label: "Knapsack DP", sub: "Best coupon combo" },
-];
-
-const DEMO_ACCOUNTS = [
-  { label: "Demo Standard", email: "demo@books.com", password: "demo123", isPremium: false, name: "Demo User" },
-  { label: "Demo Premium ⭐", email: "premium@books.com", password: "demo123", isPremium: true, name: "Premium User" },
-];
-
 function passwordStrength(pw) {
   if (!pw) return null;
   let score = 0;
@@ -27,9 +14,9 @@ function passwordStrength(pw) {
 
 const STRENGTH_META = [
   null,
-  { label: "Weak", color: "var(--red)" },
-  { label: "Fair", color: "var(--amber)" },
-  { label: "Good", color: "var(--blue)" },
+  { label: "Weak",   color: "var(--red)"   },
+  { label: "Fair",   color: "var(--amber)" },
+  { label: "Good",   color: "var(--blue)"  },
   { label: "Strong", color: "var(--green)" },
 ];
 
@@ -65,6 +52,17 @@ export default function LoginPage() {
     setTouched(t => ({ ...t, [key]: true }));
   }
 
+  async function loginWithGoogle() {
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: {
+        redirectTo: "http://localhost:5173",
+        skipBrowserRedirect: false,
+      },
+    });
+    if (error) dispatch({ type: "SET_ERROR", payload: error.message });
+  }
+
   async function submit(e) {
     e.preventDefault();
     const allTouched = mode === "register"
@@ -94,9 +92,7 @@ export default function LoginPage() {
         email: form.email,
         password: form.password,
       });
-      if (error) {
-        dispatch({ type: "SET_ERROR", payload: error.message });
-      }
+      if (error) dispatch({ type: "SET_ERROR", payload: error.message });
       setLoading(false);
     }
   }
@@ -116,19 +112,14 @@ export default function LoginPage() {
     setLoading(false);
   }
 
-  function fillDemo(account) {
-    setForm({ ...form, email: account.email, password: account.password });
-    setFieldErrs({});
-    setTouched({});
-  }
-
-  function handleForgotPassword(e) {
+  async function handleForgotPassword(e) {
     e.preventDefault();
     if (!form.email.match(/^[^@]+@[^@]+\.[^@]+$/)) {
       setTouched(t => ({ ...t, email: true }));
       setFieldErrs(prev => ({ ...prev, email: "Enter your email first" }));
       return;
     }
+    await supabase.auth.resetPasswordForEmail(form.email);
     setForgotSent(true);
   }
 
@@ -138,22 +129,18 @@ export default function LoginPage() {
   return (
     <div className="auth-page">
       <div className="auth-split">
+
         <div className="auth-brand">
           <div className="auth-brand-inner">
             <div className="auth-logo">B</div>
-            <span className="eyebrow">BookSphere studio</span>
             <h1 className="auth-brand-title">BookSphere</h1>
-            <p className="auth-brand-sub">A polished bookstore interface with quick search, premium queues, smart delivery routes, and curated recommendations.</p>
-            <div className="auth-features">
-              {DSA_FEATURES.map(f => (
-                <div key={f.label} className="auth-feature-row">
-                  <span className="auth-feature-icon">{f.icon}</span>
-                  <div>
-                    <div className="auth-feature-label">{f.label}</div>
-                    <div className="auth-feature-sub">{f.sub}</div>
-                  </div>
-                </div>
-              ))}
+            <p className="auth-brand-sub">
+              Discover, save, and order books you love. Smart search, personalised recommendations, and fast delivery — all in one place.
+            </p>
+            <div className="auth-brand-stats">
+              <div className="auth-stat"><strong>12</strong><span>Curated titles</span></div>
+              <div className="auth-stat"><strong>4</strong><span>Genres</span></div>
+              <div className="auth-stat"><strong>7</strong><span>Cities delivered</span></div>
             </div>
           </div>
           <div className="auth-showcase" aria-hidden="true">
@@ -175,15 +162,6 @@ export default function LoginPage() {
               <p>{mode === "login" ? "Sign in to your BookSphere account" : "Start your reading journey today"}</p>
             </div>
 
-            {mode === "login" && (
-              <div className="auth-demo-bar">
-                <span className="auth-demo-label">Quick demo:</span>
-                {DEMO_ACCOUNTS.map(a => (
-                  <button key={a.email} type="button" className="auth-demo-btn" onClick={() => fillDemo(a)}>{a.label}</button>
-                ))}
-              </div>
-            )}
-
             <form onSubmit={submit} noValidate>
               {mode === "register" && (
                 <div className={`auth-field${touched.name && fieldErrs.name ? " field-error" : ""}`}>
@@ -192,7 +170,7 @@ export default function LoginPage() {
                     id="inp-name"
                     ref={mode === "register" ? firstInputRef : undefined}
                     type="text"
-                    placeholder="Varad Sharma"
+                    placeholder="Your full name"
                     value={form.name}
                     onChange={e => handleChange("name", e.target.value)}
                     onBlur={() => touch("name")}
@@ -208,7 +186,7 @@ export default function LoginPage() {
                   id="inp-email"
                   ref={mode === "login" ? firstInputRef : undefined}
                   type="email"
-                  placeholder="you@example.com"
+                  placeholder="your@email.com"
                   value={form.email}
                   onChange={e => handleChange("email", e.target.value)}
                   onBlur={() => touch("email")}
@@ -243,11 +221,7 @@ export default function LoginPage() {
                   <div className="strength-bar-wrap">
                     <div className="strength-bar">
                       {[1,2,3,4].map(i => (
-                        <div
-                          key={i}
-                          className="strength-segment"
-                          style={{ background: i <= strength ? strengthMeta?.color : undefined }}
-                        />
+                        <div key={i} className="strength-segment" style={{ background: i <= strength ? strengthMeta?.color : undefined }} />
                       ))}
                     </div>
                     {strengthMeta && <span className="strength-label" style={{ color: strengthMeta.color }}>{strengthMeta.label}</span>}
@@ -269,14 +243,14 @@ export default function LoginPage() {
                 </label>
               )}
 
-              {forgotSent && <p className="auth-success">✓ Reset link sent to {form.email} (demo only)</p>}
+              {forgotSent && <p className="auth-success">✓ Password reset link sent to {form.email}</p>}
               {state.error && registered !== "done" && <p className="auth-error">⚠ {state.error}</p>}
               {registered === "done" && <p className="auth-success">✓ Account created! Redirecting to sign in…</p>}
 
               <button type="submit" className="btn-primary auth-submit" disabled={loading}>
                 {loading
                   ? <span className="auth-spinner" />
-                  : mode === "login" ? "Enter BookSphere" : "Create Account"
+                  : mode === "login" ? "Sign In" : "Create Account"
                 }
               </button>
             </form>
@@ -284,9 +258,16 @@ export default function LoginPage() {
             <p className="auth-switch">
               {mode === "login" ? "Don't have an account? " : "Already have an account? "}
               <span onClick={() => switchMode(mode === "login" ? "register" : "login")}>
-                {mode === "login" ? "Sign up" : "Sign in"}
+                {mode === "login" ? "Sign up free" : "Sign in"}
               </span>
             </p>
+
+            <div className="auth-divider"><span>or</span></div>
+
+            <button type="button" className="btn-google" onClick={loginWithGoogle}>
+              <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.08 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-3.58-13.46-8.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
+              Continue with Google
+            </button>
           </div>
         </div>
       </div>

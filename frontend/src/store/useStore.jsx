@@ -1,6 +1,6 @@
 import { createContext, useContext, useReducer, useEffect } from "react";
 import { supabase } from "../lib/supabase";
-import { PRODUCTS, DELIVERY_GRAPH, RECOMMENDATION_GRAPH } from "../data/mockData";
+import { DELIVERY_GRAPH, RECOMMENDATION_GRAPH } from "../data/mockData";
 
 // ╔══════════════════════════════════════════════════════════════════╗
 // ║  DSA: HashMap  →  java.util.HashMap<String, List<Book>>          ║
@@ -65,7 +65,7 @@ export function dijkstra(src, dest) {
 // ║  Co-purchase graph. BFS explores neighbours level by level.      ║
 // ║  Visited set (HashSet) prevents revisits. O(V+E).                ║
 // ╚══════════════════════════════════════════════════════════════════╝
-export function bfsRecommend(productId, depth = 2) {
+export function bfsRecommend(productId, catalog, depth = 2) {
   const visited = new Set([productId]);
   let frontier = [productId];
   for (let i = 0; i < depth; i++) {
@@ -78,7 +78,7 @@ export function bfsRecommend(productId, depth = 2) {
     frontier = next;
   }
   visited.delete(productId);
-  return [...visited].map(id => PRODUCTS.find(p => p.id === id)).filter(Boolean);
+  return [...visited].map(id => catalog.find(p => p.id === id)).filter(Boolean);
 }
 
 // ╔══════════════════════════════════════════════════════════════════╗
@@ -97,7 +97,16 @@ export function knapsackDiscount(coupons, capacity) {
       if (minSpend <= w) dp[i][w] = Math.max(dp[i][w], dp[i - 1][w - minSpend] + discount);
     }
   }
-  return dp[n][cap];
+  // Traceback — find which coupons were selected
+  const selected = [];
+  let w = cap;
+  for (let i = n; i > 0; i--) {
+    if (dp[i][w] !== dp[i - 1][w]) {
+      selected.push(coupons[i - 1]);
+      w -= Math.floor(coupons[i - 1].minSpend);
+    }
+  }
+  return { total: dp[n][cap], selected };
 }
 
 // ── Initial state ─────────────────────────────────────────────────────────────
@@ -115,17 +124,11 @@ const MAX_RECENT = 5;
 // ║  recentProducts → LinkedList<Book>           (sliding window)    ║
 // ║  orders       →  PriorityQueue<Order>        (min-heap)          ║
 // ╚══════════════════════════════════════════════════════════════════╝
-const DEMO_USERS = {
-  "demo@books.com": { name: "Demo User", email: "demo@books.com", password: "demo123", isPremium: false, userId: "demo@books.com" },
-  "premium@books.com": { name: "Premium User", email: "premium@books.com", password: "demo123", isPremium: true, userId: "premium@books.com" },
-};
-
 const initial = {
   user: null,
-  users: { ...DEMO_USERS },
-  catalog: PRODUCTS,
-  searchIndex: buildSearchIndex(PRODUCTS),
-  priceSorted: buildPriceMap(PRODUCTS),
+  catalog: [],
+  searchIndex: {},
+  priceSorted: [],
   cart: [],
   undoStack: [],
   wishlist: new Set(),
@@ -133,19 +136,44 @@ const initial = {
   orders: [],
   searchResults: null,
   priceFilter: { min: 0, max: 99999 },
+  coupons: [],
+  loading: true,
 };
 
 function reducer(state, action) {
   switch (action.type) {
 
     case "SET_USER":
-      return { ...state, user: action.payload, error: null };
+      return { ...state, user: action.payload, error: null, loading: false };
+
+    case "SET_LOADING":
+      return { ...state, loading: action.payload };
 
     case "SET_ERROR":
       return { ...state, error: action.payload };
 
+    case "SET_CATALOG": {
+      const products = action.payload;
+      return { ...state, catalog: products, searchIndex: buildSearchIndex(products), priceSorted: buildPriceMap(products), loading: false };
+    }
+
+    case "SET_COUPONS":
+      return { ...state, coupons: action.payload };
+
+    case "SET_ORDERS":
+      return { ...state, orders: action.payload };
+
+    case "SET_WISHLIST":
+      return { ...state, wishlist: new Set(action.payload) };
+
+    case "SET_CART":
+      return { ...state, cart: action.payload };
+
+    case "SET_RECENT":
+      return { ...state, recentProducts: action.payload };
+
     case "LOGOUT":
-      return { ...initial, users: state.users, searchIndex: state.searchIndex, priceSorted: state.priceSorted };
+      return { ...initial, loading: false };
 
     case "VIEW_PRODUCT": {
       // DSA: LinkedList<Book>  →  java.util.LinkedList
@@ -210,7 +238,7 @@ function reducer(state, action) {
       const priority = state.user?.isPremium ? 1 : 10;
       const order = {
         orderId: `ORD-${Date.now()}`,
-        userId: state.user?.email,
+        userId: state.user?.userId,
         items: [...state.cart],
         total,
         priority,
@@ -225,8 +253,13 @@ function reducer(state, action) {
 
     case "PROCESS_ORDER": {
       if (!state.orders.length) return state;
-      const [next, ...rest] = state.orders; // DSA: PriorityQueue.poll() — dequeue min-priority order, O(log n)
-      return { ...state, orders: [{ ...next, status: "PROCESSING" }, ...rest] };
+      const pending = state.orders.find(o => o.status === "PENDING");
+      if (!pending) return state;
+      return { ...state, orders: state.orders.map(o => o.orderId === pending.orderId ? { ...o, status: "PROCESSING" } : o) };
+    }
+
+    case "DELIVER_ORDER": {
+      return { ...state, orders: state.orders.map(o => o.orderId === action.payload ? { ...o, status: "DELIVERED" } : o) };
     }
 
     default:
@@ -236,45 +269,107 @@ function reducer(state, action) {
 
 const StoreContext = createContext(null);
 
+async function loadUserData(userId, catalog, dispatch) {
+  const [{ data: orders }, { data: wishlist }, { data: cart }, { data: recent }] = await Promise.all([
+    supabase.from("orders").select("*").eq("user_id", userId).order("priority"),
+    supabase.from("wishlists").select("book_id").eq("user_id", userId),
+    supabase.from("carts").select("*").eq("user_id", userId),
+    supabase.from("recently_viewed").select("book_id, viewed_at").eq("user_id", userId).order("viewed_at", { ascending: false }).limit(5),
+  ]);
+  if (orders) dispatch({ type: "SET_ORDERS", payload: orders.map(o => ({ orderId: o.order_id, userId: o.user_id, items: o.items, total: o.total, priority: o.priority, status: o.status, isPremium: o.is_premium })) });
+  if (wishlist) dispatch({ type: "SET_WISHLIST", payload: wishlist.map(w => w.book_id) });
+  if (cart && catalog.length) dispatch({ type: "SET_CART", payload: cart.map(c => ({ product: catalog.find(p => p.id === c.book_id), qty: c.qty })).filter(c => c.product) });
+  if (recent && catalog.length) dispatch({ type: "SET_RECENT", payload: recent.map(r => catalog.find(p => p.id === r.book_id)).filter(Boolean) });
+}
+
 export function StoreProvider({ children }) {
   const [state, dispatch] = useReducer(reducer, initial);
 
-  // Supabase auth session listener
+  // Load books + coupons from Supabase on mount
   useEffect(() => {
-    // Check existing session on mount
+    Promise.all([
+      supabase.from("books").select("*"),
+      supabase.from("coupons").select("*"),
+    ]).then(([{ data: books }, { data: coupons }]) => {
+      if (books?.length)   dispatch({ type: "SET_CATALOG", payload: books });
+      if (coupons?.length) dispatch({ type: "SET_COUPONS", payload: coupons.map(c => ({ id: c.id, label: c.label, minSpend: c.min_spend, discount: c.discount })) });
+    });
+  }, []);
+
+  // Auth session listener — independent of catalog
+  useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session?.user) {
-        dispatch({
-          type: "SET_USER",
-          payload: {
-            userId: session.user.id,
-            email: session.user.email,
-            name: session.user.user_metadata?.name || session.user.email,
-            isPremium: session.user.user_metadata?.isPremium || false,
-          },
-        });
+        const u = session.user;
+        dispatch({ type: "SET_USER", payload: { userId: u.id, email: u.email, name: u.user_metadata?.full_name || u.user_metadata?.name || u.email, isPremium: u.user_metadata?.isPremium || false } });
+      } else {
+        dispatch({ type: "SET_LOADING", payload: false });
       }
     });
 
-    // Listen for login / logout events
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      console.log("AUTH EVENT:", event, session?.user?.email);
       if (session?.user) {
-        dispatch({
-          type: "SET_USER",
-          payload: {
-            userId: session.user.id,
-            email: session.user.email,
-            name: session.user.user_metadata?.name || session.user.email,
-            isPremium: session.user.user_metadata?.isPremium || false,
-          },
-        });
-      } else {
+        const u = session.user;
+        dispatch({ type: "SET_USER", payload: { userId: u.id, email: u.email, name: u.user_metadata?.full_name || u.user_metadata?.name || u.email, isPremium: u.user_metadata?.isPremium || false } });
+      } else if (event === "SIGNED_OUT") {
         dispatch({ type: "LOGOUT" });
+      } else {
+        dispatch({ type: "SET_LOADING", payload: false });
       }
     });
 
     return () => subscription.unsubscribe();
   }, []);
+
+  // Load user data once both user and catalog are ready
+  useEffect(() => {
+    if (!state.user?.userId || !state.catalog.length) return;
+    loadUserData(state.user.userId, state.catalog, dispatch);
+  }, [state.user?.userId, state.catalog.length]);
+
+  // Fix 1: Persist orders + sync status updates
+  useEffect(() => {
+    if (!state.user?.userId || !state.orders.length) return;
+    state.orders.forEach(order => {
+      supabase.from("orders").upsert({
+        order_id:   order.orderId,
+        user_id:    state.user.userId,
+        items:      order.items,
+        total:      order.total,
+        priority:   order.priority,
+        status:     order.status,
+        is_premium: order.isPremium,
+      }, { onConflict: "order_id" });
+    });
+  }, [state.orders]);
+
+  // Fix 2: Per-item wishlist sync
+  useEffect(() => {
+    if (!state.user?.userId) return;
+    const bookIds = [...state.wishlist];
+    supabase.from("wishlists").delete().eq("user_id", state.user.userId).then(() => {
+      if (!bookIds.length) return;
+      supabase.from("wishlists").upsert(bookIds.map(book_id => ({ user_id: state.user.userId, book_id })), { onConflict: "user_id,book_id" });
+    });
+  }, [state.wishlist]);
+
+  // Fix 3: Persist cart to Supabase
+  useEffect(() => {
+    if (!state.user?.userId) return;
+    supabase.from("carts").delete().eq("user_id", state.user.userId).then(() => {
+      if (!state.cart.length) return;
+      supabase.from("carts").insert(state.cart.map(({ product, qty }) => ({ user_id: state.user.userId, book_id: product.id, qty })));
+    });
+  }, [state.cart]);
+
+  // Fix 4: Persist recently viewed
+  useEffect(() => {
+    if (!state.user?.userId || !state.recentProducts.length) return;
+    state.recentProducts.forEach(product => {
+      supabase.from("recently_viewed").upsert({ user_id: state.user.userId, book_id: product.id, viewed_at: new Date().toISOString() }, { onConflict: "user_id,book_id" });
+    });
+  }, [state.recentProducts]);
 
   return <StoreContext.Provider value={{ state, dispatch }}>{children}</StoreContext.Provider>;
 }
