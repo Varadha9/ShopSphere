@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useStore } from "../store/useStore";
 import ProductCard from "../components/ProductCard";
 import CategoryTree from "../components/CategoryTree";
+import ShelfSlider from "../components/ShelfSlider";
 import { CATEGORY_TREE } from "../data/mockData";
 
 const SORT_OPTIONS = [
@@ -106,32 +107,24 @@ export default function CatalogPage({ setPage }) {
 
       {/* ── Trending ─────────────────────────────────────── */}
       {!state.searchResults && selectedCat === "All" && (
-        <section className="shelf-section">
-          <div className="shelf-heading">
-            <div>
-              <span className="eyebrow">Most popular</span>
-              <h2>🔥 Trending Now</h2>
-            </div>
-          </div>
-          <div className="shelf-row">
-            {trending.map(p => <ProductCard key={p.id} product={p} setPage={setPage} compact />)}
-          </div>
-        </section>
+        <ShelfSlider
+          books={trending}
+          setPage={setPage}
+          label="🔥 Trending Now"
+          eyebrow="Most popular"
+          accentColor="var(--pink)"
+        />
       )}
 
       {/* ── New Arrivals ──────────────────────────────────── */}
       {!state.searchResults && selectedCat === "All" && (
-        <section className="shelf-section">
-          <div className="shelf-heading">
-            <div>
-              <span className="eyebrow">Just added</span>
-              <h2>✨ New Arrivals</h2>
-            </div>
-          </div>
-          <div className="shelf-row">
-            {newArrivals.map(p => <ProductCard key={p.id} product={p} setPage={setPage} compact />)}
-          </div>
-        </section>
+        <ShelfSlider
+          books={newArrivals}
+          setPage={setPage}
+          label="✨ New Arrivals"
+          eyebrow="Just added"
+          accentColor="var(--mint)"
+        />
       )}
 
       {/* ── Main catalog layout ──────────────────────────── */}
