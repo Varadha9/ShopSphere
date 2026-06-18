@@ -274,6 +274,7 @@ export function StoreProvider({ children }) {
   const [state, dispatch] = useReducer(reducer, initial);
   const userId = state.user?.userId;
   const cartLoaded = useRef(false);
+  const wishlistLoaded = useRef(false);
 
   // Load books + coupons from Supabase on mount
   useEffect(() => {
@@ -316,8 +317,12 @@ export function StoreProvider({ children }) {
   useEffect(() => {
     if (!userId || !state.catalog.length) return;
     cartLoaded.current = false;
+    wishlistLoaded.current = false;
     loadUserData(userId, state.catalog, dispatch);
-    setTimeout(() => { cartLoaded.current = true; }, 1000);
+    setTimeout(() => {
+      cartLoaded.current = true;
+      wishlistLoaded.current = true;
+    }, 1000);
   }, [userId, state.catalog]);
 
   // Fix 1: Persist only status updates (not full orders — new orders saved directly in dispatch)
@@ -330,9 +335,9 @@ export function StoreProvider({ children }) {
     });
   }, [state.orders, userId]);
 
-  // Fix 2: Per-item wishlist sync
+  // Fix 2: Per-item wishlist sync — only after initial DB load
   useEffect(() => {
-    if (!userId) return;
+    if (!userId || !wishlistLoaded.current) return;
     const bookIds = [...state.wishlist];
     supabase.from("wishlists").delete().eq("user_id", userId).then(() => {
       if (!bookIds.length) return;
