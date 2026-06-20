@@ -19,10 +19,13 @@ public class LoginTest extends BaseTest {
     @Test(groups = "smoke", description = "TC_L_01: Valid email + password login")
     public void testValidLogin() {
         new LoginPage(driver).login(EMAIL, PASS);
-        new WebDriverWait(driver, Duration.ofSeconds(15))
-            .until(ExpectedConditions.not(ExpectedConditions.urlContains("/login")));
-        Assert.assertFalse(driver.getCurrentUrl().contains("/login"),
-            "Should redirect away from login page after valid credentials");
+        // SPA — after login the catalog renders at root (login form disappears)
+        new WebDriverWait(driver, Duration.ofSeconds(20))
+            .until(ExpectedConditions.presenceOfElementLocated(
+                org.openqa.selenium.By.cssSelector(".product-card")));
+        Assert.assertTrue(driver.findElements(
+            org.openqa.selenium.By.cssSelector(".product-card")).size() > 0,
+            "Catalog should be visible after valid login");
     }
 
     // TC_L_02 — wrong password

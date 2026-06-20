@@ -43,9 +43,12 @@ public class LoginStepDefs {
 
     @Then("I should be redirected away from the login page")
     public void assertRedirected() {
-        new WebDriverWait(driver, Duration.ofSeconds(15))
-            .until(ExpectedConditions.not(ExpectedConditions.urlContains("/login")));
-        Assert.assertFalse(driver.getCurrentUrl().contains("/login"));
+        // SPA — catalog .product-card appears when login succeeds
+        new WebDriverWait(driver, Duration.ofSeconds(20))
+            .until(ExpectedConditions.presenceOfElementLocated(
+                org.openqa.selenium.By.cssSelector(".product-card")));
+        Assert.assertTrue(driver.findElements(
+            org.openqa.selenium.By.cssSelector(".product-card")).size() > 0);
     }
 
     @Then("I should see an error message")
